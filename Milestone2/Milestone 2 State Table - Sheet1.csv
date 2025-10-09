@@ -1,0 +1,15 @@
+,,,,,,,,,,,,,,,,,,,
+,Current State,Delay,Output,Next State,,,,,,,,,,,,,,,
+,,,,0000,0001,0010,0011,0100,0101,0110,0111,1000,1001,1010,1011,1100,1101,1110,1111
+,Straight,1,0101,Straight,DriftLeft,DriftRight,Straight,Stop,Stop,Stop,Stop,Stop,Stop,Stop,Stop,Stop,Stop,Stop,Stop
+,Stop,1,1010,Reverse,Reverse,Reverse,Reverse,Reverse,Reverse,Reverse,Reverse,Reverse,Reverse,Reverse,Reverse,Reverse,Reverse,Reverse,Reverse
+,Reverse,1,1111,RotateRight,RotateRight,RotateRight,RotateRight,RotateRight,RotateRight,RotateRight,RotateRight,RotateRight,RotateRight,RotateRight,RotateRight,RotateRight,RotateRight,RotateRight,RotateRight
+,RotateRight,1,1101,Straight,Straight,Straight,Straight,Straight,Straight,Straight,Straight,Straight,Straight,Straight,Straight,Straight,Straight,Straight,Straight
+,DriftLeft,1,1101,Straight,DriftLeft,Straight,DriftLeft,Straight,DriftLeft,Straight,DriftLeft,Straight,DriftLeft,Straight,DriftLeft,Straight,DriftLeft,Straight,DriftLeft
+,DriftRight,1,0111,Straight,Straight,DriftRight,DriftRight,Straight,Straight,DriftRight,DriftRight,Straight,Straight,DriftRight,DriftRight,Straight,Straight,DriftRight,DriftRight
+,,,,,,,,,,,,,,,,,,,
+,Inputs,Bit #,,,,,,,,,,,,,,,,,
+,BMP0,3,,,,,,,,,,,,,,,,,
+,BMP5,2,,,,,,,,,,,,,,,,,
+,QTR1,1,,,,,,,,,,,,,,,,,
+,QTR5,0,,,,,,,,,,,,,,,,,
