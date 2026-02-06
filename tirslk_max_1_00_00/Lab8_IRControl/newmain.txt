@@ -1,0 +1,172 @@
+/*
+ * newmain.c
+ *
+ *  Created on: Dec 10, 2025
+ *      Author: c-hibler
+ */
+
+#include <stdint.h>
+#include <stdbool.h>
+#include "msp.h"
+#include "../inc/Clock.h"
+#include "../inc/CortexM.h"
+#include "../inc/LaunchPad.h"
+#include "../inc/Motor.h"
+#include "../inc/BumpInt.h"
+#include "../inc/TExaS.h"
+#include "../inc/TimerA1.h"
+#include "../inc/FlashProgram.h"
+#include "../inc/ADC14.h"
+#include "../inc/IRDistance.h"
+
+#define SENSOR_SAMPLES 5
+#define PL 1
+#define PR 1
+#define SETPOINT 160 // 80mm
+#define MINIMUM_SPEED 2500
+#define MAXIMUM_SPEED 4500
+#define CENTER_COLLISION 110
+#define LEFT_COLLISION 60
+#define RIGHT_COLLISION 60
+#define WHEEL_IMBALANCE 40
+
+// Blue arrows (set amount of time)
+#define BLUE_1 3251 // 6.35 seconds
+#define BLUE_2 1280 // 2.5 seconds
+#define BLUE_3 2560 // 5.0 seconds
+#define BLUE_4 2560 // 5.0 seconds
+#define BLUE_5 2560 // 5.0 seconds
+#define BLUE_6 2560 // 5.0 seconds
+
+uint8_t CollisionFlag;
+void HandleCollision(uint8_t bumpSensor){
+    Motor_Stop();
+    CollisionFlag = 1;
+}
+
+void HandleApproach(uint8_t bumpSensor){
+    Motor_Stop();
+    CollisionFlag = 1;
+}
+
+void CenterCollision(void){
+    Motor_Stop();
+    Clock_Delay1ms(500);
+    Motor_Left(2500,2500);
+    Clock_Delay1ms(1000);
+}
+
+void LeftCollision(void){
+    Motor_Stop();
+    Clock_Delay1ms(500);
+    Motor_Right(2500,2500);
+    Clock_Delay1ms(500);
+}
+
+void RightCollision(void){
+    Motor_Stop();
+    Clock_Delay1ms(500);
+    Motor_Left(2500, 2500);
+    Clock_Delay1ms(500);
+}
+
+int main(void){
+    Clock_Init48MHz();
+    ADC0_InitSWTriggerCh6();
+    Motor_Init();
+    LaunchPad_Init();
+
+    while (LaunchPad_Input() != 1) {}
+
+    uint32_t readC, readL, readR;
+    int32_t distC, distL, distR;
+    int32_t errorL = 0;
+    int32_t errorR = 0;
+
+    int32_t U = 3000;
+    int32_t O = 3000;
+    Motor_Forward(O + WHEEL_IMBALANCE, U - WHEEL_IMBALANCE);
+
+    BumpInt_Init(&HandleCollision);
+    EnableInterrupts();
+
+    while(1){
+        distC = 0;
+        distL = 0;
+        distR = 0;
+        for (uint8_t i = 0; i < SENSOR_SAMPLES; i++){
+            ADC_In6_14_15(&readC, &readL, &readR);
+            distC += CenterConvert(readC);
+            distL += LeftConvert(readL);
+            distR += RightConvert(readR);
+            Clock_Delay1ms(1);
+        }
+
+        distC /= SENSOR_SAMPLES;
+        distL /= SENSOR_SAMPLES;
+        distR /= SENSOR_SAMPLES;
+
+        if(CollisionFlag){
+            Motor_Stop();
+            break;
+        }
+
+        if(distC < CENTER_COLLISION) {
+            CenterCollision();
+        }
+
+        if(distL < LEFT_COLLISION) {
+            LeftCollision();
+        }
+
+        if (distR < RIGHT_COLLISION) {
+            RightCollision();
+        }
+
+        errorL = SETPOINT - distL;
+        errorR = SETPOINT - distR;
+
+        if (errorL >= 5 || errorR <= -5) {
+            Motor_Stop();
+            if (errorL < 0) {
+                U = U + PL * errorL;
+            }
+            if (errorL > 0) {
+                U = U + PL * errorL;
+            }
+            if (U > MAXIMUM_SPEED) {
+                U = MAXIMUM_SPEED;
+            }
+            if (U < MINIMUM_SPEED) {
+                U= MINIMUM_SPEED;
+            }
+        }
+
+        if (errorR >= 5 || errorR <= -5) {
+            Motor_Stop();
+            if (errorR < 0) {
+                 O = O + PR * errorR;
+            }
+            if (errorR > 0) {
+                 O = O + PR * errorR;
+            }
+            if (O > MAXIMUM_SPEED) {
+                 O = MAXIMUM_SPEED;
+            }
+            if (U < MINIMUM_SPEED) {
+                 O = MINIMUM_SPEED;
+            }
+        }
+        else {
+            O = U;
+        }
+
+        EnableInterrupts();
+        Motor_Forward(O + WHEEL_IMBALANCE, U - WHEEL_IMBALANCE);
+        BumpInt_Init(&HandleCollision);
+
+        Clock_Delay1ms(25);
+    }
+}
+
+
